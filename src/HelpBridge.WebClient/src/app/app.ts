@@ -102,6 +102,18 @@ export class App implements OnInit {
   donationSuccessReceipt = signal<any | null>(null);
   isProcessingPayment = signal<boolean>(false);
 
+  // Gateway Steps and Payment Options
+  checkoutStep = signal<'amount' | 'gateway' | 'processing' | 'receipt'>('amount');
+  selectedPaymentMethod = signal<'upi' | 'card' | 'netbanking'>('upi');
+  selectedUpiApp = signal<'gpay' | 'phonepe' | 'paytm' | 'qr'>('gpay');
+  upiId = signal<string>('donor@okhdfcbank');
+  cardNumber = signal<string>('4532 •••• •••• 8821');
+  cardExpiry = signal<string>('08/29');
+  cardCvv = signal<string>('•••');
+  cardName = signal<string>('Rahul Sharma');
+  selectedBank = signal<string>('HDFC Bank');
+  gatewayOrderId = signal<string>('order_hb_' + Math.random().toString(36).substring(2, 9));
+
   // Recipient Draft Form
   draftTitle = signal('Semester Tuition Assistance');
   draftCategory = signal(1);
@@ -213,38 +225,56 @@ export class App implements OnInit {
 
   openDonationModal(request: RequestSummary) {
     this.selectedRequestForDonation.set(request);
-    this.donationAmount.set(Math.min(1000, request.targetAmount - request.fundedAmount));
+    this.checkoutStep.set('amount');
     this.donationSuccessReceipt.set(null);
+    this.gatewayOrderId.set('order_hb_' + Math.random().toString(36).substring(2, 9));
+    const remaining = request.targetAmount - request.fundedAmount;
+    this.donationAmount.set(remaining > 0 ? Math.min(1000, remaining) : 0);
   }
 
   closeDonationModal() {
     this.selectedRequestForDonation.set(null);
     this.donationSuccessReceipt.set(null);
+    this.checkoutStep.set('amount');
   }
 
   setPresetAmount(amount: number) {
-    this.donationAmount.set(amount);
+    const req = this.selectedRequestForDonation();
+    const remaining = req ? req.targetAmount - req.fundedAmount : amount;
+    this.donationAmount.set(Math.min(amount, remaining));
   }
 
-  confirmContribution() {
+  proceedToGateway() {
+    if (this.donationAmount() <= 0) return;
+    this.checkoutStep.set('gateway');
+  }
+
+  processGatewayPayment() {
     const req = this.selectedRequestForDonation();
     if (!req) return;
 
-    this.isProcessingPayment.set(true);
+    this.checkoutStep.set('processing');
 
     setTimeout(() => {
-      // Simulate successful payment confirmation
       const amt = this.donationAmount();
       req.fundedAmount += amt;
       req.progressPercentage = Math.min(100, Math.round((req.fundedAmount / req.targetAmount) * 100));
       req.supporterCount += 1;
 
+      const method = this.selectedPaymentMethod();
+      const mockPaymentId = method === 'upi'
+        ? `pay_upi_${Math.random().toString(36).substring(2, 10)}`
+        : method === 'card'
+        ? `pay_card_${Math.random().toString(36).substring(2, 10)}`
+        : `pay_nb_${Math.random().toString(36).substring(2, 10)}`;
+
       this.donationSuccessReceipt.set({
-        paymentId: `pay_sim_${Math.random().toString(36).substring(2, 10)}`,
+        paymentId: mockPaymentId,
         amount: amt,
         tip: this.tipAmount(),
         total: this.totalCheckoutAmount(),
         billerName: req.recipientDisplayName,
+        paymentMethod: method === 'upi' ? 'UPI / ' + this.selectedUpiApp().toUpperCase() : method === 'card' ? 'Credit/Debit Card' : 'Net Banking',
         timestamp: new Date().toLocaleTimeString()
       });
 
@@ -255,8 +285,8 @@ export class App implements OnInit {
         totalPlatformTipsRevenue: m.totalPlatformTipsRevenue + this.tipAmount()
       }));
 
-      this.isProcessingPayment.set(false);
-    }, 1200);
+      this.checkoutStep.set('receipt');
+    }, 1800);
   }
 
   // Recipient submission

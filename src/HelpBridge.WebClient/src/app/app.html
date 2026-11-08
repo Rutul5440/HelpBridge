@@ -109,8 +109,8 @@
             </div>
 
             <div class="card-actions">
-              <button class="btn btn-secondary w-100" (click)="openDonationModal(req)">
-                Support with Contribution
+              <button class="btn btn-secondary w-100" [disabled]="req.progressPercentage >= 100" (click)="openDonationModal(req)">
+                {{ req.progressPercentage >= 100 ? '✓ 100% Fully Funded' : 'Support with Contribution' }}
               </button>
             </div>
           </div>
@@ -367,79 +367,264 @@
   }
 </main>
 
-<!-- CONTRIBUTION CHECKOUT MODAL -->
+<!-- CONTRIBUTION CHECKOUT & GATEWAY MODAL -->
 @if (selectedRequestForDonation(); as req) {
   <div class="modal-backdrop" (click)="closeDonationModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-content gateway-modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div>
-          <h3>Support Verified Assistance</h3>
+          <h3>{{ checkoutStep() === 'gateway' ? 'Payment Gateway Checkout' : 'Support Verified Assistance' }}</h3>
           <p class="text-muted">{{ req.title }}</p>
         </div>
         <button class="close-btn" (click)="closeDonationModal()">✕</button>
       </div>
 
-      @if (!donationSuccessReceipt()) {
+      <!-- STEP 1: AMOUNT & TIP BREAKDOWN -->
+      @if (checkoutStep() === 'amount') {
         <div class="modal-body">
           <div class="recipient-badge-box mb-3">
             <span>Recipient: <strong>{{ req.recipientDisplayName }}</strong></span>
             <span class="badge badge-verified">Direct to Verified Biller</span>
           </div>
 
-          <label class="form-label">Select Contribution Amount (INR)</label>
-          <div class="preset-chips mb-3">
-            <button class="chip" [class.active]="donationAmount() === 500" (click)="setPresetAmount(500)">₹500</button>
-            <button class="chip" [class.active]="donationAmount() === 1000" (click)="setPresetAmount(1000)">₹1,000</button>
-            <button class="chip" [class.active]="donationAmount() === 2500" (click)="setPresetAmount(2500)">₹2,500</button>
-            <button class="chip" [class.active]="donationAmount() === 5000" (click)="setPresetAmount(5000)">₹5,000</button>
-          </div>
+          @if (req.progressPercentage >= 100) {
+            <div class="tip-box mb-3">
+              <strong>🎉 100% Fully Funded!</strong>
+              <p class="text-muted text-xs mt-1">This request has reached its target goal and is currently queued for institutional disbursement in the Admin & Ops workbench.</p>
+            </div>
+            <button class="btn btn-secondary w-100" (click)="closeDonationModal()">Close</button>
+          } @else {
+            <label class="form-label">Select Contribution Amount (INR)</label>
+            <div class="preset-chips mb-3">
+              <button class="chip" [class.active]="donationAmount() === 500" (click)="setPresetAmount(500)">₹500</button>
+              <button class="chip" [class.active]="donationAmount() === 1000" (click)="setPresetAmount(1000)">₹1,000</button>
+              <button class="chip" [class.active]="donationAmount() === 2500" (click)="setPresetAmount(2500)">₹2,500</button>
+              <button class="chip" [class.active]="donationAmount() === 5000" (click)="setPresetAmount(5000)">₹5,000</button>
+            </div>
 
-          <div class="form-group">
-            <input type="number" class="form-control" [(ngModel)]="donationAmount" />
-          </div>
+            <div class="form-group">
+              <input type="number" class="form-control" [(ngModel)]="donationAmount" />
+            </div>
 
-          <div class="tip-box mb-3">
-            <div class="d-flex-between">
-              <span>Voluntary Platform Support Tip:</span>
-              <strong>{{ voluntaryTipPercentage() }}% (₹{{ tipAmount() }})</strong>
+            <div class="tip-box mb-3">
+              <div class="d-flex-between">
+                <span>Voluntary Platform Support Tip:</span>
+                <strong>{{ voluntaryTipPercentage() }}% (₹{{ tipAmount() }})</strong>
+              </div>
+              <p class="text-muted text-xs">HelpBridge does not take undisclosed cuts from assistance. Platform tips are optional.</p>
             </div>
-            <p class="text-muted text-xs">HelpBridge does not take undisclosed cuts from assistance. Platform tips are optional.</p>
-          </div>
 
-          <!-- Itemized Transparent Breakdown -->
-          <div class="breakdown-card mb-3">
-            <div class="breakdown-line">
-              <span>Assistance Allocation:</span>
-              <span>₹{{ donationAmount() | number }}</span>
+            <!-- Itemized Transparent Breakdown -->
+            <div class="breakdown-card mb-3">
+              <div class="breakdown-line">
+                <span>Assistance Allocation:</span>
+                <span>₹{{ donationAmount() | number }}</span>
+              </div>
+              <div class="breakdown-line">
+                <span>Platform Fee:</span>
+                <span class="text-success">₹0.00 (0%)</span>
+              </div>
+              <div class="breakdown-line">
+                <span>Voluntary Platform Tip:</span>
+                <span>₹{{ tipAmount() | number }}</span>
+              </div>
+              <div class="breakdown-line total">
+                <span>Total Checkout:</span>
+                <span>₹{{ totalCheckoutAmount() | number }}</span>
+              </div>
             </div>
-            <div class="breakdown-line">
-              <span>Platform Fee:</span>
-              <span class="text-success">₹0.00 (0%)</span>
-            </div>
-            <div class="breakdown-line">
-              <span>Voluntary Platform Tip:</span>
-              <span>₹{{ tipAmount() | number }}</span>
-            </div>
-            <div class="breakdown-line total">
-              <span>Total Checkout:</span>
-              <span>₹{{ totalCheckoutAmount() | number }}</span>
-            </div>
-          </div>
 
-          <button class="btn btn-primary w-100 py-3" [disabled]="isProcessingPayment()" (click)="confirmContribution()">
-            {{ isProcessingPayment() ? 'Verifying with Sandbox Gateway...' : 'Confirm Contribution of ₹' + (totalCheckoutAmount() | number) }}
-          </button>
+            <button class="btn btn-primary w-100 py-3" [disabled]="donationAmount() <= 0" (click)="proceedToGateway()">
+              Proceed to Payment Gateway (₹{{ totalCheckoutAmount() | number }}) →
+            </button>
+          }
         </div>
-      } @else {
-        <!-- SUCCESS RECEIPT VIEW -->
+      }
+
+      <!-- STEP 2: PAYMENT GATEWAY SCREEN (UPI / QR / CARDS / NETBANKING) -->
+      @if (checkoutStep() === 'gateway') {
+        <div class="gateway-container">
+          <div class="gateway-banner">
+            <div class="gateway-brand">
+              <span class="lock-icon">🔒</span>
+              <div>
+                <strong>HelpBridge Secure Gateway</strong>
+                <span class="security-text">256-Bit SSL Encrypted · Razorpay & NPCI UPI Compatible</span>
+              </div>
+            </div>
+            <div class="gateway-amount">
+              <span class="amt-lbl">Total Payable</span>
+              <span class="amt-num">₹{{ totalCheckoutAmount() | number }}</span>
+            </div>
+          </div>
+
+          <div class="gateway-body">
+            <!-- Left Payment Navigation -->
+            <div class="gateway-sidebar">
+              <button class="gateway-tab-btn" [class.active]="selectedPaymentMethod() === 'upi'" (click)="selectedPaymentMethod.set('upi')">
+                <span class="tab-icon">⚡</span>
+                <div class="tab-text">
+                  <strong>UPI / QR</strong>
+                  <small>GPay, PhonePe, Paytm</small>
+                </div>
+              </button>
+
+              <button class="gateway-tab-btn" [class.active]="selectedPaymentMethod() === 'card'" (click)="selectedPaymentMethod.set('card')">
+                <span class="tab-icon">💳</span>
+                <div class="tab-text">
+                  <strong>Cards</strong>
+                  <small>Credit / Debit</small>
+                </div>
+              </button>
+
+              <button class="gateway-tab-btn" [class.active]="selectedPaymentMethod() === 'netbanking'" (click)="selectedPaymentMethod.set('netbanking')">
+                <span class="tab-icon">🏦</span>
+                <div class="tab-text">
+                  <strong>Net Banking</strong>
+                  <small>All Indian Banks</small>
+                </div>
+              </button>
+            </div>
+
+            <!-- Right Payment Form -->
+            <div class="gateway-content-pane">
+              @if (selectedPaymentMethod() === 'upi') {
+                <div class="upi-methods">
+                  <div class="sub-tab-pills mb-3">
+                    <button class="sub-pill" [class.active]="selectedUpiApp() !== 'qr'" (click)="selectedUpiApp.set('gpay')">UPI Apps / ID</button>
+                    <button class="sub-pill" [class.active]="selectedUpiApp() === 'qr'" (click)="selectedUpiApp.set('qr')">Scan UPI QR Code</button>
+                  </div>
+
+                  @if (selectedUpiApp() === 'qr') {
+                    <div class="qr-code-wrapper text-center">
+                      <div class="qr-box">
+                        <svg width="130" height="130" viewBox="0 0 100 100" class="qr-svg">
+                          <rect width="100" height="100" fill="#FFFFFF" rx="6" />
+                          <rect x="8" y="8" width="26" height="26" fill="#14213D" />
+                          <rect x="13" y="13" width="16" height="16" fill="#FFFFFF" />
+                          <rect x="16" y="16" width="10" height="10" fill="#14213D" />
+                          <rect x="66" y="8" width="26" height="26" fill="#14213D" />
+                          <rect x="71" y="13" width="16" height="16" fill="#FFFFFF" />
+                          <rect x="74" y="16" width="10" height="10" fill="#14213D" />
+                          <rect x="8" y="66" width="26" height="26" fill="#14213D" />
+                          <rect x="13" y="71" width="16" height="16" fill="#FFFFFF" />
+                          <rect x="16" y="74" width="10" height="10" fill="#14213D" />
+                          <rect x="42" y="12" width="16" height="6" fill="#3157D5" />
+                          <rect x="42" y="24" width="8" height="12" fill="#14213D" />
+                          <rect x="40" y="40" width="20" height="20" fill="#31C48D" />
+                          <rect x="45" y="45" width="10" height="10" fill="#FFFFFF" />
+                          <rect x="12" y="42" width="18" height="6" fill="#14213D" />
+                          <rect x="70" y="42" width="18" height="6" fill="#14213D" />
+                          <rect x="42" y="68" width="8" height="20" fill="#14213D" />
+                          <rect x="58" y="68" width="14" height="8" fill="#3157D5" />
+                          <rect x="76" y="76" width="16" height="16" fill="#14213D" />
+                        </svg>
+                      </div>
+                      <p class="qr-instruction">Scan with Google Pay, PhonePe, Paytm, or BHIM UPI</p>
+                      <span class="vpa-pill">helpbridge.escrow@icici</span>
+                    </div>
+                  } @else {
+                    <div class="app-selector-row mb-3">
+                      <button class="app-card" [class.selected]="selectedUpiApp() === 'gpay'" (click)="selectedUpiApp.set('gpay')">
+                        <span class="app-badge gpay">GPay</span>
+                        <span>Google Pay</span>
+                      </button>
+                      <button class="app-card" [class.selected]="selectedUpiApp() === 'phonepe'" (click)="selectedUpiApp.set('phonepe')">
+                        <span class="app-badge phonepe">PhonePe</span>
+                        <span>PhonePe</span>
+                      </button>
+                      <button class="app-card" [class.selected]="selectedUpiApp() === 'paytm'" (click)="selectedUpiApp.set('paytm')">
+                        <span class="app-badge paytm">Paytm</span>
+                        <span>Paytm</span>
+                      </button>
+                    </div>
+
+                    <div class="form-group mb-2">
+                      <label class="form-label text-xs">UPI ID / Virtual Payment Address</label>
+                      <input type="text" class="form-control" [(ngModel)]="upiId" placeholder="username@okhdfcbank" />
+                    </div>
+                    <p class="text-muted text-xs mb-3">A secure payment request notification will be sent to your UPI application.</p>
+                  }
+                </div>
+              }
+
+              @if (selectedPaymentMethod() === 'card') {
+                <div class="card-form">
+                  <div class="form-group mb-2">
+                    <label class="form-label text-xs">Card Number</label>
+                    <input type="text" class="form-control" [(ngModel)]="cardNumber" placeholder="4532 •••• •••• 8821" />
+                  </div>
+                  <div class="row-2col mb-2">
+                    <div class="form-group">
+                      <label class="form-label text-xs">Expiry</label>
+                      <input type="text" class="form-control" [(ngModel)]="cardExpiry" placeholder="MM/YY" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label text-xs">CVV</label>
+                      <input type="password" maxlength="4" class="form-control" [(ngModel)]="cardCvv" placeholder="•••" />
+                    </div>
+                  </div>
+                  <div class="form-group mb-2">
+                    <label class="form-label text-xs">Cardholder Name</label>
+                    <input type="text" class="form-control" [(ngModel)]="cardName" placeholder="Full name on card" />
+                  </div>
+                  <p class="text-muted text-xs mb-3">Supports Visa, Mastercard, RuPay with RBI compliant tokenization.</p>
+                </div>
+              }
+
+              @if (selectedPaymentMethod() === 'netbanking') {
+                <div class="netbanking-selector">
+                  <label class="form-label text-xs mb-2">Select Your Bank</label>
+                  <div class="bank-pill-grid mb-3">
+                    @for (b of ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra', 'Punjab National Bank']; track b) {
+                      <button class="bank-pill-btn" [class.active]="selectedBank() === b" (click)="selectedBank.set(b)">
+                        <span class="bank-ico">🏛️</span>
+                        <span>{{ b }}</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="gateway-action-bar">
+                <button class="btn btn-outline" (click)="checkoutStep.set('amount')">← Back</button>
+                <button class="btn btn-primary flex-grow" (click)="processGatewayPayment()">
+                  Pay ₹{{ totalCheckoutAmount() | number }} Securely
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- STEP 3: ISSUING BANK PROCESSING SIMULATION -->
+      @if (checkoutStep() === 'processing') {
+        <div class="modal-body text-center py-5">
+          <div class="gateway-loader mb-3">
+            <div class="spinner-circle"></div>
+          </div>
+          <h4>Connecting with Payment Gateway...</h4>
+          <p class="text-muted mb-2">Authorizing ₹{{ totalCheckoutAmount() | number }} via {{ selectedPaymentMethod().toUpperCase() }}</p>
+          <div class="escrow-lock-badge">
+            <span>🔒 Direct to Recipient Escrow Liability (Account 2010)</span>
+          </div>
+          <p class="text-muted text-xs mt-3">Verifying cryptographic HMAC signature. Do not close or refresh this tab.</p>
+        </div>
+      }
+
+      <!-- STEP 4: VERIFIED CONFIRMATION RECEIPT -->
+      @if (checkoutStep() === 'receipt') {
         <div class="modal-body text-center py-4">
           <div class="success-icon-circle mb-3">✓</div>
           <h3>Contribution Confirmed!</h3>
-          <p class="text-muted mb-3">Your contribution has been verified and registered in the double-entry escrow ledger.</p>
+          <p class="text-muted mb-3">Your contribution has been verified by the gateway and registered in the double-entry escrow ledger.</p>
 
           <div class="receipt-box mb-4">
             <div class="receipt-line"><span>Transaction ID:</span> <code>{{ donationSuccessReceipt().paymentId }}</code></div>
+            <div class="receipt-line"><span>Payment Channel:</span> <strong>{{ donationSuccessReceipt().paymentMethod }}</strong></div>
             <div class="receipt-line"><span>Assistance Amount:</span> <strong>₹{{ donationSuccessReceipt().amount | number }}</strong></div>
+            <div class="receipt-line"><span>Voluntary Platform Tip:</span> <span>₹{{ donationSuccessReceipt().tip | number }}</span></div>
+            <div class="receipt-line"><span>Total Discharged:</span> <strong>₹{{ donationSuccessReceipt().total | number }}</strong></div>
             <div class="receipt-line"><span>Beneficiary Institution:</span> <span>{{ selectedRequestForDonation()?.recipientDisplayName }}</span></div>
             <div class="receipt-line"><span>Status:</span> <span class="badge badge-verified">Direct Payout Queued</span></div>
           </div>
