@@ -5,6 +5,7 @@ using HelpBridge.Domain.Assistance;
 using HelpBridge.Domain.Donations;
 using HelpBridge.Domain.Enums;
 using HelpBridge.Domain.Identity;
+using HelpBridge.Domain.Notifications;
 using HelpBridge.Domain.Payments;
 using HelpBridge.Domain.Payouts;
 using HelpBridge.Domain.Verification;
@@ -40,6 +41,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
     public DbSet<JournalLineItem> JournalLineItems => Set<JournalLineItem>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -288,6 +290,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
         {
             entity.HasKey(t => t.Id);
             entity.Property(t => t.Subject).HasMaxLength(200).IsRequired();
+        });
+
+        // Configure Notifications
+        builder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).HasMaxLength(150).IsRequired();
+            entity.Property(n => n.Type).HasMaxLength(50).IsRequired();
+            entity.HasIndex(n => new { n.UserId, n.IsRead });
+            entity.HasIndex(n => n.CreatedUtc);
         });
 
         // Seed Core Categories

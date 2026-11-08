@@ -3,6 +3,7 @@ using HelpBridge.Domain.Administration;
 using HelpBridge.Domain.Assistance;
 using HelpBridge.Domain.Donations;
 using HelpBridge.Domain.Identity;
+using HelpBridge.Domain.Notifications;
 using HelpBridge.Domain.Payments;
 using HelpBridge.Domain.Payouts;
 using HelpBridge.Domain.Verification;
@@ -31,8 +32,14 @@ public interface IApplicationDbContext
     DbSet<JournalLineItem> JournalLineItems { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<SupportTicket> SupportTickets { get; }
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+}
+
+public interface INotificationService
+{
+    Task SendNotificationAsync(string userId, string title, string message, string type, Guid? referenceId = null, CancellationToken cancellationToken = default);
 }
 
 public interface ICurrentUserService
