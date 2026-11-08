@@ -23,3 +23,4 @@ public record ContributionBroadcastDto(
     int SupporterCount,
     string Status
 );
+

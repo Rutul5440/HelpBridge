@@ -77,3 +77,4 @@ public partial class DocumentAnalysisService : IDocumentAnalysisService
     [GeneratedRegex(@"(?:₹|Rs\.?|INR)\s*([0-9,]+(?:\.[0-9]{2})?)", RegexOptions.IgnoreCase)]
     private static partial Regex AmountRegex();
 }
+

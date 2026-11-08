@@ -71,11 +71,22 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // 4. Dependency Injection for Core Services
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IBlobStorageService, LocalOrBlobStorageService>();
-builder.Services.AddScoped<IPaymentProvider, SimulatedPaymentProvider>();
 builder.Services.AddScoped<IDocumentAnalysisService, DocumentAnalysisService>();
 builder.Services.AddSignalR();
+
+builder.Services.AddScoped<IPaymentProvider>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var providerName = config["Payments:Provider"] ?? "Simulated";
+    if (providerName.Equals("Razorpay", StringComparison.OrdinalIgnoreCase))
+    {
+        return new RazorpayPaymentProvider(sp.GetRequiredService<HttpClient>(), config);
+    }
+    return new SimulatedPaymentProvider();
+});
 
 // 5. CORS Configuration for Angular Single Page App
 builder.Services.AddCors(options =>

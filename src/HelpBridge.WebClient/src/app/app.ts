@@ -1,8 +1,9 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './core/services/auth.service';
 import { HelpBridgeApiService } from './core/services/helpbridge-api.service';
+import { RealtimeService } from './core/services/realtime.service';
 import { RequestSummary, AssistanceRequest, AdminMetrics } from './core/models/models';
 
 type ViewTab = 'explore' | 'swipe' | 'recipient' | 'admin' | 'how-it-works';
@@ -17,10 +18,12 @@ type ViewTab = 'explore' | 'swipe' | 'recipient' | 'admin' | 'how-it-works';
 export class App implements OnInit {
   protected auth = inject(AuthService);
   protected api = inject(HelpBridgeApiService);
+  protected realtime = inject(RealtimeService);
 
   currentTab = signal<ViewTab>('explore');
   selectedCategory = signal<number>(0); // 0 = All
   searchQuery = signal<string>('');
+  liveNotification = signal<string | null>(null);
 
   // Sample data fallback for instant client presentation
   requests = signal<RequestSummary[]>([
@@ -135,6 +138,38 @@ export class App implements OnInit {
     }
     return list;
   });
+
+  constructor() {
+    effect(() => {
+      const update = this.realtime.latestContribution();
+      if (update) {
+        // Find matching request and update in place
+        this.requests.update(items =>
+          items.map(r => {
+            if (r.id === update.requestId) {
+              return {
+                ...r,
+                fundedAmount: update.newFundedAmount,
+                progressPercentage: update.progressPercentage,
+                supporterCount: update.supporterCount
+              };
+            }
+            return r;
+          })
+        );
+
+        // Flash live banner
+        this.liveNotification.set(`⚡ Live Update: Verified contribution of ₹${update.contributionAmount.toLocaleString()} just received!`);
+        setTimeout(() => this.liveNotification.set(null), 5000);
+
+        // Update telemetry volume
+        this.adminMetrics.update(m => ({
+          ...m,
+          totalContributionsFacilitated: m.totalContributionsFacilitated + update.contributionAmount
+        }));
+      }
+    });
+  }
 
   ngOnInit() {
     this.refreshDiscoveryFeed();

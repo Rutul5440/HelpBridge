@@ -101,3 +101,4 @@ d:\HelpBridge\
 - **Double-Entry Ledger:** Every rupee collected and disbursed generates balanced journal entries.
 - **Time-Limited Document Access:** Supporting documents are private with 15-minute expiring SAS URLs.
 - **AI OCR & Duplicate Check:** SHA-256 document hashing flags recycled bills; regex/AI engine cross-verifies claimed amounts against invoice text.
+

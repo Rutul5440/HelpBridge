@@ -31,6 +31,15 @@
   </div>
 </header>
 
+@if (liveNotification()) {
+  <div class="live-toast-banner">
+    <div class="container d-flex-between">
+      <span>{{ liveNotification() }}</span>
+      <button class="close-toast" (click)="liveNotification.set(null)">✕</button>
+    </div>
+  </div>
+}
+
 <main>
   <!-- TAB 1: EXPLORE DISCOVERY FEED -->
   @if (currentTab() === 'explore') {
