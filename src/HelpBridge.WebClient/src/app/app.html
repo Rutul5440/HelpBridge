@@ -1,0 +1,443 @@
+<!-- HelpBridge Top Header -->
+<header class="hb-header">
+  <div class="container header-inner">
+    <div class="brand" (click)="setTab('explore')">
+      <div class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">HelpBridge</span>
+        <span class="brand-tag">Verified Marketplace</span>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <button class="nav-link" [class.active]="currentTab() === 'explore'" (click)="setTab('explore')">Explore Causes</button>
+      <button class="nav-link" [class.active]="currentTab() === 'swipe'" (click)="setTab('swipe')">
+        <span class="swipe-sparkle">✨</span> Swipe Discovery
+      </button>
+      <button class="nav-link" [class.active]="currentTab() === 'recipient'" (click)="setTab('recipient')">Recipient Portal</button>
+      <button class="nav-link" [class.active]="currentTab() === 'admin'" (click)="setTab('admin')">Admin & Ops</button>
+      <button class="nav-link" [class.active]="currentTab() === 'how-it-works'" (click)="setTab('how-it-works')">Our Promise</button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="btn btn-outline" (click)="setTab('recipient')">+ Request Assistance</button>
+      <button class="btn btn-secondary" (click)="setTab('explore')">Contribute</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- TAB 1: EXPLORE DISCOVERY FEED -->
+  @if (currentTab() === 'explore') {
+    <section class="hero-section">
+      <div class="container hero-content">
+        <div class="badge badge-verified mb-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1 14.5l-3.5-3.5 1.41-1.41L11 13.67l5.59-5.59L18 9.5l-7 7z"/></svg>
+          Direct-to-Biller Verified Financial Assistance
+        </div>
+        <h1 class="hero-title">Every contribution has a verified purpose.<br>Every transaction has a traceable outcome.</h1>
+        <p class="hero-sub">Direct payments to accredited colleges, hospitals, and verified service providers. Zero unverified claims.</p>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-card">
+          <div class="category-pills">
+            <button class="pill" [class.active]="selectedCategory() === 0" (click)="selectCategory(0)">All Causes</button>
+            <button class="pill" [class.active]="selectedCategory() === 1" (click)="selectCategory(1)">🎓 Education</button>
+            <button class="pill" [class.active]="selectedCategory() === 2" (click)="selectCategory(2)">🏥 Medical</button>
+          </div>
+          <div class="search-input-wrapper">
+            <input type="text" class="form-control search-input" placeholder="Search by student, patient, college, or hospital..." [(ngModel)]="searchQuery" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Request Grid -->
+    <section class="container pb-5">
+      <div class="grid-header">
+        <h3>Verified Assistance Requests ({{ filteredRequests().length }})</h3>
+        <span class="text-muted">Direct remittances to institution bank accounts</span>
+      </div>
+
+      <div class="requests-grid">
+        @for (req of filteredRequests(); track req.id) {
+          <div class="hb-card hb-card-hover request-card">
+            <div class="card-top-row">
+              <span class="badge badge-category">{{ req.categoryName }}</span>
+              <span class="badge badge-verified">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                VERIFIED BILL
+              </span>
+            </div>
+
+            <div class="recipient-info">
+              <div class="avatar-circle">{{ req.recipientDisplayName[0] }}</div>
+              <div>
+                <h4 class="recipient-name">{{ req.recipientDisplayName }}</h4>
+                <p class="recipient-location">{{ req.location }}</p>
+              </div>
+            </div>
+
+            <h3 class="card-title">{{ req.title }}</h3>
+
+            <div class="card-financials">
+              <div class="financial-row">
+                <span class="amount-raised">₹{{ req.fundedAmount | number }}</span>
+                <span class="amount-target">of ₹{{ req.targetAmount | number }}</span>
+              </div>
+              <div class="progress-container">
+                <div class="progress-bar" [style.width.%]="req.progressPercentage"></div>
+              </div>
+              <div class="financial-subtext">
+                <span>{{ req.progressPercentage }}% Funded</span>
+                <span>{{ req.supporterCount }} Supporters · {{ req.daysRemaining }}d left</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button class="btn btn-secondary w-100" (click)="openDonationModal(req)">
+                Support with Contribution
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- TAB 2: SWIPE DISCOVERY -->
+  @if (currentTab() === 'swipe') {
+    <section class="container swipe-section">
+      <div class="swipe-wrapper">
+        <div class="swipe-header text-center">
+          <h2>Swipe Discovery</h2>
+          <p class="text-muted">Explore verified human causes. Swipe right to bookmark, or tap to review and contribute.</p>
+        </div>
+
+        @if (currentSwipeCard(); as card) {
+          <div class="hb-card swipe-deck-card">
+            <div class="card-top-row">
+              <span class="badge badge-category">{{ card.categoryName }}</span>
+              <span class="badge badge-verified">✓ INSTITUTION VERIFIED</span>
+            </div>
+
+            <div class="recipient-info my-3">
+              <div class="avatar-circle lg">{{ card.recipientDisplayName[0] }}</div>
+              <div>
+                <h3 class="recipient-name">{{ card.recipientDisplayName }}</h3>
+                <p class="recipient-location">{{ card.location }}</p>
+              </div>
+            </div>
+
+            <h3 class="swipe-title">{{ card.title }}</h3>
+
+            <div class="card-financials my-3">
+              <div class="financial-row">
+                <span class="amount-raised">₹{{ card.fundedAmount | number }}</span>
+                <span class="amount-target">goal ₹{{ card.targetAmount | number }}</span>
+              </div>
+              <div class="progress-container">
+                <div class="progress-bar" [style.width.%]="card.progressPercentage"></div>
+              </div>
+              <div class="financial-subtext">
+                <span>{{ card.progressPercentage }}% Raised</span>
+                <span>{{ card.daysRemaining }} days remaining</span>
+              </div>
+            </div>
+
+            <div class="verification-pill-box">
+              <div class="pill-item">
+                <span class="icon">🏛️</span>
+                <span>Direct Biller Remittance</span>
+              </div>
+              <div class="pill-item">
+                <span class="icon">📄</span>
+                <span>Official Invoice Inspected</span>
+              </div>
+            </div>
+
+            <div class="swipe-control-buttons">
+              <button class="swipe-btn skip" title="Skip to next" (click)="swipeLeft()">✕</button>
+              <button class="btn btn-secondary flex-grow" (click)="openDonationModal(card)">Contribute ₹1,000</button>
+              <button class="swipe-btn save" title="Save to Bookmarks" (click)="swipeRight()">♥</button>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- TAB 3: RECIPIENT PORTAL -->
+  @if (currentTab() === 'recipient') {
+    <section class="container py-4">
+      <div class="portal-header">
+        <div>
+          <h2>Recipient Portal</h2>
+          <p class="text-muted">Draft, upload invoices, and track institutional assistance requests.</p>
+        </div>
+        <div class="status-tracker-pill">
+          Current State: <strong>{{ recipientRequestStatus() }}</strong>
+        </div>
+      </div>
+
+      <div class="portal-grid">
+        <div class="hb-card">
+          <h3 class="mb-3">1. Assistance Request Details</h3>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-control" [(ngModel)]="draftCategory">
+              <option [value]="1">Education & College Tuition</option>
+              <option [value]="2">Medical & Hospital Treatment</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Request Title</label>
+            <input type="text" class="form-control" [(ngModel)]="draftTitle" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Required Amount (₹)</label>
+            <input type="number" class="form-control" [(ngModel)]="draftAmount" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Official Biller / Educational Institution Name</label>
+            <input type="text" class="form-control" [(ngModel)]="draftBiller" />
+          </div>
+
+          <div class="row-2col">
+            <div class="form-group">
+              <label class="form-label">Institution Bank Account / Virtual Code</label>
+              <input type="text" class="form-control" [(ngModel)]="draftBillerAccount" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">IFSC / Routing Code</label>
+              <input type="text" class="form-control" [(ngModel)]="draftBillerIfsc" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Narrative Story / Purpose</label>
+            <textarea class="form-control" rows="4" [(ngModel)]="draftStory"></textarea>
+          </div>
+        </div>
+
+        <div class="hb-card flex-column-between">
+          <div>
+            <h3 class="mb-3">2. Institutional Documentation</h3>
+            <p class="text-muted mb-3">Upload your college fee schedule or hospital invoice. Files are stored in private encrypted storage and inspected by our compliance team.</p>
+
+            <div class="upload-dropzone">
+              <div class="dropzone-icon">📁</div>
+              <p class="dropzone-text"><strong>{{ uploadedDocumentName() ?? 'Click to upload supporting PDF' }}</strong></p>
+              <span class="dropzone-hint">PDF, JPEG, or PNG up to 10MB</span>
+            </div>
+
+            <div class="verification-rule-notice mt-3">
+              <h4>Trust & Integrity Enforcement</h4>
+              <ul>
+                <li>Checksum SHA-256 duplicate detection active.</li>
+                <li>OCR automated parsing cross-references institution and amount.</li>
+                <li>Recipients cannot mark requests verified or completed.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="submit-action-box mt-4">
+            <button class="btn btn-primary w-100 py-3" [disabled]="recipientRequestStatus() !== 'Draft'" (click)="submitRecipientRequest()">
+              {{ recipientRequestStatus() === 'Draft' ? 'Submit for Officer Verification' : 'Status: ' + recipientRequestStatus() }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- TAB 4: ADMIN & VERIFICATION WORKBENCH -->
+  @if (currentTab() === 'admin') {
+    <section class="container py-4">
+      <div class="admin-header mb-4">
+        <h2>Administrative & Verification Workbench</h2>
+        <span class="badge badge-verified">Double-Entry Ledger Invariant: BALANCED (0.00 Variance)</span>
+      </div>
+
+      <!-- Telemetry Counters -->
+      <div class="telemetry-grid mb-4">
+        <div class="hb-card telemetry-card">
+          <span class="metric-label">Facilitated Volume</span>
+          <span class="metric-value">₹{{ adminMetrics().totalContributionsFacilitated | number }}</span>
+          <span class="metric-sub">100% Traceable</span>
+        </div>
+        <div class="hb-card telemetry-card">
+          <span class="metric-label">Platform Tips</span>
+          <span class="metric-value">₹{{ adminMetrics().totalPlatformTipsRevenue | number }}</span>
+          <span class="metric-sub">Transparent Revenue</span>
+        </div>
+        <div class="hb-card telemetry-card">
+          <span class="metric-label">Pending Verification</span>
+          <span class="metric-value text-warning">{{ adminMetrics().pendingVerificationCases }}</span>
+          <span class="metric-sub">SLA: &lt;24 hours</span>
+        </div>
+        <div class="hb-card telemetry-card">
+          <span class="metric-label">Ready for Biller Payout</span>
+          <span class="metric-value">{{ adminMetrics().pendingPayoutsCount }}</span>
+          <span class="metric-sub">Direct NEFT Queue</span>
+        </div>
+      </div>
+
+      <!-- Verification Case Inspector -->
+      <div class="hb-card mb-4">
+        <div class="d-flex-between mb-3">
+          <h3>Verification Queue: Case #VC-2026-0814</h3>
+          <span class="badge badge-category">Education Tuition Claim</span>
+        </div>
+
+        <div class="ocr-comparison-grid">
+          <div class="ocr-box">
+            <h4>Uploaded Document Extraction (Azure AI OCR)</h4>
+            <div class="ocr-field"><span class="k">Biller Detected:</span> <span class="v">Ahmedabad Institute of Technology</span></div>
+            <div class="ocr-field"><span class="k">Invoice Amount:</span> <span class="v">₹25,000.00</span></div>
+            <div class="ocr-field"><span class="k">Due Date:</span> <span class="v">30 Nov 2026</span></div>
+            <div class="ocr-field"><span class="k">Confidence Score:</span> <span class="v text-success">98.5%</span></div>
+            <div class="ocr-field"><span class="k">SHA-256 Duplicate Check:</span> <span class="v text-success">Passed (Unique)</span></div>
+          </div>
+
+          <div class="ocr-box">
+            <h4>Recipient Claimed Information</h4>
+            <div class="ocr-field"><span class="k">Applicant:</span> <span class="v">Rahul Patel (Student)</span></div>
+            <div class="ocr-field"><span class="k">Claim Amount:</span> <span class="v">₹25,000.00</span></div>
+            <div class="ocr-field"><span class="k">Institution Account:</span> <span class="v">998877665544 (SBIN0001234)</span></div>
+            <div class="ocr-field"><span class="k">Discrepancy Status:</span> <span class="v text-success">Zero Mismatch</span></div>
+          </div>
+        </div>
+
+        <div class="decision-buttons mt-4">
+          <button class="btn btn-outline">Query Additional Details</button>
+          <button class="btn btn-outline text-error">Reject Claim</button>
+          <button class="btn btn-accent flex-grow" (click)="approvePendingCase()">
+            ✓ Approve & Publish to Verified Marketplace
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- TAB 5: HOW IT WORKS / OUR PROMISE -->
+  @if (currentTab() === 'how-it-works') {
+    <section class="container py-5">
+      <div class="text-center max-w-700 mx-auto mb-5">
+        <h2>Our Core Promise</h2>
+        <p class="hero-sub">HelpBridge was founded on the fundamental principle that financial generosity must be accompanied by absolute institutional verification and transparent fund flow.</p>
+      </div>
+
+      <div class="promise-grid">
+        <div class="hb-card">
+          <div class="promise-icon">🏛️</div>
+          <h3>1. Direct to Biller</h3>
+          <p class="text-muted">Donations do not disappear into personal unmonitored bank accounts. We remit funds directly to verified colleges, universities, and hospitals.</p>
+        </div>
+        <div class="hb-card">
+          <div class="promise-icon">🛡️</div>
+          <h3>2. Zero Unverified Requests</h3>
+          <p class="text-muted">Every single request requires an official fee schedule or hospital invoice, cross-checked using AI OCR and signed off by a human compliance officer.</p>
+        </div>
+        <div class="hb-card">
+          <div class="promise-icon">⚖️</div>
+          <h3>3. Double-Entry Invariance</h3>
+          <p class="text-muted">Every single rupee is tracked through double-entry accounting. 100% of your chosen contribution reaches the assistance purpose.</p>
+        </div>
+      </div>
+    </section>
+  }
+</main>
+
+<!-- CONTRIBUTION CHECKOUT MODAL -->
+@if (selectedRequestForDonation(); as req) {
+  <div class="modal-backdrop" (click)="closeDonationModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3>Support Verified Assistance</h3>
+          <p class="text-muted">{{ req.title }}</p>
+        </div>
+        <button class="close-btn" (click)="closeDonationModal()">✕</button>
+      </div>
+
+      @if (!donationSuccessReceipt()) {
+        <div class="modal-body">
+          <div class="recipient-badge-box mb-3">
+            <span>Recipient: <strong>{{ req.recipientDisplayName }}</strong></span>
+            <span class="badge badge-verified">Direct to Verified Biller</span>
+          </div>
+
+          <label class="form-label">Select Contribution Amount (INR)</label>
+          <div class="preset-chips mb-3">
+            <button class="chip" [class.active]="donationAmount() === 500" (click)="setPresetAmount(500)">₹500</button>
+            <button class="chip" [class.active]="donationAmount() === 1000" (click)="setPresetAmount(1000)">₹1,000</button>
+            <button class="chip" [class.active]="donationAmount() === 2500" (click)="setPresetAmount(2500)">₹2,500</button>
+            <button class="chip" [class.active]="donationAmount() === 5000" (click)="setPresetAmount(5000)">₹5,000</button>
+          </div>
+
+          <div class="form-group">
+            <input type="number" class="form-control" [(ngModel)]="donationAmount" />
+          </div>
+
+          <div class="tip-box mb-3">
+            <div class="d-flex-between">
+              <span>Voluntary Platform Support Tip:</span>
+              <strong>{{ voluntaryTipPercentage() }}% (₹{{ tipAmount() }})</strong>
+            </div>
+            <p class="text-muted text-xs">HelpBridge does not take undisclosed cuts from assistance. Platform tips are optional.</p>
+          </div>
+
+          <!-- Itemized Transparent Breakdown -->
+          <div class="breakdown-card mb-3">
+            <div class="breakdown-line">
+              <span>Assistance Allocation:</span>
+              <span>₹{{ donationAmount() | number }}</span>
+            </div>
+            <div class="breakdown-line">
+              <span>Platform Fee:</span>
+              <span class="text-success">₹0.00 (0%)</span>
+            </div>
+            <div class="breakdown-line">
+              <span>Voluntary Platform Tip:</span>
+              <span>₹{{ tipAmount() | number }}</span>
+            </div>
+            <div class="breakdown-line total">
+              <span>Total Checkout:</span>
+              <span>₹{{ totalCheckoutAmount() | number }}</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-100 py-3" [disabled]="isProcessingPayment()" (click)="confirmContribution()">
+            {{ isProcessingPayment() ? 'Verifying with Sandbox Gateway...' : 'Confirm Contribution of ₹' + (totalCheckoutAmount() | number) }}
+          </button>
+        </div>
+      } @else {
+        <!-- SUCCESS RECEIPT VIEW -->
+        <div class="modal-body text-center py-4">
+          <div class="success-icon-circle mb-3">✓</div>
+          <h3>Contribution Confirmed!</h3>
+          <p class="text-muted mb-3">Your contribution has been verified and registered in the double-entry escrow ledger.</p>
+
+          <div class="receipt-box mb-4">
+            <div class="receipt-line"><span>Transaction ID:</span> <code>{{ donationSuccessReceipt().paymentId }}</code></div>
+            <div class="receipt-line"><span>Assistance Amount:</span> <strong>₹{{ donationSuccessReceipt().amount | number }}</strong></div>
+            <div class="receipt-line"><span>Beneficiary Institution:</span> <span>{{ selectedRequestForDonation()?.recipientDisplayName }}</span></div>
+            <div class="receipt-line"><span>Status:</span> <span class="badge badge-verified">Direct Payout Queued</span></div>
+          </div>
+
+          <button class="btn btn-secondary w-100" (click)="closeDonationModal()">Return to Discovery</button>
+        </div>
+      }
+    </div>
+  </div>
+}
