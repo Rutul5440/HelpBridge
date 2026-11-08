@@ -65,3 +65,18 @@ public interface IPaymentProvider
 
 public record PaymentOrderResult(string OrderId, string ProviderName, decimal Amount, string Currency);
 
+public interface IDocumentAnalysisService
+{
+    Task<DocumentAnalysisResult> AnalyzeDocumentAsync(string originalFileName, string contentType, Stream documentStream, decimal claimedAmount, string claimedBiller, CancellationToken cancellationToken = default);
+}
+
+public record DocumentAnalysisResult(
+    decimal? ExtractedAmount,
+    string? ExtractedBiller,
+    string? ExtractedReferenceNumber,
+    DateTime? ExtractedDueDate,
+    decimal ConfidenceScore,
+    decimal AiRiskScore,
+    List<string> RiskFlags
+);
+

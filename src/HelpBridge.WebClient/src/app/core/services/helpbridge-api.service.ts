@@ -16,7 +16,7 @@ import {
 })
 export class HelpBridgeApiService {
   private http = inject(HttpClient);
-  private baseUrl = 'https://localhost:7080/api/v1';
+  private baseUrl = '/api/v1';
 
   // --- Discovery ---
   getDiscoveryFeed(categoryId?: number, search?: string): Observable<ApiResponse<RequestSummary[]>> {
@@ -115,3 +115,4 @@ export class HelpBridgeApiService {
     return this.http.get<ApiResponse<AdminMetrics>>(`${this.baseUrl}/admin/dashboard`);
   }
 }
+

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using HelpBridge.Api.Hubs;
 using HelpBridge.Application.Common;
 using HelpBridge.Application.Features.Donations.DTOs;
 using HelpBridge.Application.Interfaces;
@@ -10,6 +11,7 @@ using HelpBridge.Domain.Payouts;
 using HelpBridge.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace HelpBridge.Api.Controllers.v1;
@@ -21,12 +23,18 @@ public class PaymentsController : ControllerBase
     private readonly AppDbContext _dbContext;
     private readonly IPaymentProvider _paymentProvider;
     private readonly IConfiguration _configuration;
+    private readonly IHubContext<FundingHub> _fundingHub;
 
-    public PaymentsController(AppDbContext dbContext, IPaymentProvider paymentProvider, IConfiguration configuration)
+    public PaymentsController(
+        AppDbContext dbContext,
+        IPaymentProvider paymentProvider,
+        IConfiguration configuration,
+        IHubContext<FundingHub> fundingHub)
     {
         _dbContext = dbContext;
         _paymentProvider = paymentProvider;
         _configuration = configuration;
+        _fundingHub = fundingHub;
     }
 
     private string? CurrentUserId => User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
@@ -119,6 +127,20 @@ public class PaymentsController : ControllerBase
 
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
+
+            // Broadcast real-time funding progress via SignalR
+            var supporterCount = await _dbContext.Donations.CountAsync(d => d.RequestId == intent.RequestId && d.Status == DonationStatus.Confirmed);
+            var broadcast = new ContributionBroadcastDto(
+                RequestId: intent.RequestId,
+                ContributionAmount: donation.AssistanceAmount,
+                NewFundedAmount: intent.Request.FundedAmount,
+                ProgressPercentage: intent.Request.ProgressPercentage,
+                SupporterCount: supporterCount,
+                Status: intent.Request.Status.ToString()
+            );
+
+            await _fundingHub.Clients.All.SendAsync("ContributionReceived", broadcast);
+            await _fundingHub.Clients.Group($"request_{intent.RequestId}").SendAsync("RequestUpdated", broadcast);
 
             var receiptDto = new DonationReceiptDto
             {

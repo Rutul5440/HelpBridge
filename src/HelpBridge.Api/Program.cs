@@ -1,7 +1,9 @@
 using System.Text;
+using HelpBridge.Api.Hubs;
 using HelpBridge.Api.Middleware;
 using HelpBridge.Application.Interfaces;
 using HelpBridge.Domain.Identity;
+using HelpBridge.Infrastructure.AI;
 using HelpBridge.Infrastructure.Identity;
 using HelpBridge.Infrastructure.Payments;
 using HelpBridge.Infrastructure.Persistence;
@@ -72,6 +74,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IBlobStorageService, LocalOrBlobStorageService>();
 builder.Services.AddScoped<IPaymentProvider, SimulatedPaymentProvider>();
+builder.Services.AddScoped<IDocumentAnalysisService, DocumentAnalysisService>();
+builder.Services.AddSignalR();
 
 // 5. CORS Configuration for Angular Single Page App
 builder.Services.AddCors(options =>
@@ -197,6 +201,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<FundingHub>("/hubs/funding");
 
 app.Run();
 

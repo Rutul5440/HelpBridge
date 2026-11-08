@@ -8,7 +8,7 @@ import { ApiResponse, AuthResponse, UserProfile } from '../models/models';
 })
 export class AuthService {
   private http = inject(HttpClient);
-  private apiUrl = 'https://localhost:7080/api/v1/auth'; // default fallback or relative
+  private apiUrl = '/api/v1/auth'; // default fallback or relative
 
   currentUser = signal<UserProfile | null>(null);
   token = signal<string | null>(localStorage.getItem('hb_token'));
@@ -85,3 +85,4 @@ export class AuthService {
     });
   }
 }
+
